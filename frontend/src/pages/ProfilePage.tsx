@@ -1,17 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, Shield, Activity, LogOut, Save, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { User } from '../types/index';
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadProfile();
@@ -22,252 +15,174 @@ const ProfilePage: React.FC = () => {
     try {
       const data = await apiService.getProfile();
       setUser(data);
-      setFormData({ name: data.name, email: data.email, password: '' });
     } catch (err) {
-      setError('Impossible de charger le profil.');
-      console.error(err);
+      console.error('Erreur lors du chargement du profil');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setUpdating(true);
-    setError('');
-    setSuccess('');
-    try {
-      const updateData: any = { name: formData.name, email: formData.email };
-      if (formData.password) updateData.password = formData.password;
-      
-      const updatedUser = await apiService.updateProfile(updateData);
-      setUser(updatedUser);
-      setSuccess('Profil mis à jour avec succès !');
-      setFormData(prev => ({ ...prev, password: '' }));
-    } catch (err) {
-      setError('Erreur lors de la mise à jour du profil.');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleLogout = () => {
-    apiService.logout();
-    window.location.href = '/login';
-  };
-
   if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }} className="animate-pulse">Chargement de votre profil...</div>
-      </div>
-    );
+    return <div className="container-fluid py-4">Chargement...</div>;
   }
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '4rem' }}>
-      <button 
-        onClick={() => navigate('/')}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          background: 'none', 
-          border: 'none', 
-          color: 'var(--text-muted)', 
-          cursor: 'pointer',
-          marginBottom: '2rem',
-          fontSize: '0.9rem'
-        }}
-      >
-        <ArrowLeft size={18} />
-        Retour au tableau de bord
-      </button>
-
-      <header style={{ marginBottom: '3rem' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Mon Profil</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Gérez vos informations personnelles et votre compte</p>
-      </header>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
-        {/* Colonne de gauche : Résumé */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="glass card" style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--primary), var(--secondary))', 
-              margin: '0 auto 1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white'
-            }}>
-              <UserIcon size={40} />
-            </div>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.2rem' }}>{user?.name}</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{user?.email}</p>
-            
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.4rem 0.8rem', 
-              background: 'rgba(255,255,255,0.05)', 
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              <Shield size={14} style={{ color: user?.role === 'admin' ? 'var(--accent)' : 'var(--secondary)' }} />
-              {user?.role}
+    <div className="container-fluid">
+      <div className="page-header min-height-300 border-radius-xl mt-4" style={{ backgroundImage: "url('/assets/img/curved-images/curved0.jpg')", backgroundPositionY: '50%' }}>
+        <span className="mask bg-gradient-primary opacity-6"></span>
+      </div>
+      <div className="card card-body blur shadow-blur mx-4 mt-n6 overflow-hidden">
+        <div className="row gx-4">
+          <div className="col-auto">
+            <div className="avatar avatar-xl position-relative">
+              <img src="/assets/img/bruce-mars.jpg" alt="profile_image" className="w-100 border-radius-lg shadow-sm" />
             </div>
           </div>
-
-          <div className="glass card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Activity size={18} />
-              Statistiques
-            </h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.8rem', borderBottom: '1px solid var(--border-glass)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Tâches totales</span>
-              <span style={{ fontWeight: 700 }}>{user?.tasks?.length || 0}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.8rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Statut compte</span>
-              <span style={{ color: user?.is_active ? 'var(--secondary)' : 'var(--accent)', fontWeight: 600 }}>
-                {user?.is_active ? 'Actif' : 'Inactif'}
-              </span>
+          <div className="col-auto my-auto">
+            <div className="h-100">
+              <h5 className="mb-1">{user?.name}</h5>
+              <p className="mb-0 font-weight-bold text-sm">{user?.role || 'Utilisateur'}</p>
             </div>
           </div>
-
-          <button 
-            onClick={handleLogout}
-            style={{ 
-              width: '100%', 
-              padding: '1rem', 
-              borderRadius: '12px', 
-              border: '1px solid rgba(244, 63, 94, 0.2)', 
-              background: 'rgba(244, 63, 94, 0.05)', 
-              color: 'var(--accent)', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(244, 63, 94, 0.05)'}
-          >
-            <LogOut size={18} />
-            Se déconnecter
-          </button>
-        </aside>
-
-        {/* Colonne de droite : Formulaire */}
-        <main>
-          <form onSubmit={handleUpdate} className="glass card" style={{ padding: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Modifier mes informations</h3>
-
-            {error && (
-              <div style={{ 
-                background: 'rgba(244, 63, 94, 0.1)', 
-                color: 'var(--accent)', 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.7rem'
-              }}>
-                <AlertCircle size={20} />
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div style={{ 
-                background: 'rgba(6, 182, 212, 0.1)', 
-                color: 'var(--secondary)', 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.7rem'
-              }}>
-                <CheckCircle2 size={20} />
-                {success}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nom complet</label>
-                <div style={{ position: 'relative' }}>
-                  <UserIcon size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="text" 
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder={user?.name}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Adresse Email</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="email" 
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder={user?.email}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nouveau mot de passe (optionnel)</label>
-                <div style={{ position: 'relative' }}>
-                  <Shield size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="password" 
-                    value={formData.password}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder="Laisser vide pour ne pas changer"
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                disabled={updating}
-                style={{ 
-                  marginTop: '1rem', 
-                  height: '52px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '0.8rem' 
-                }}
-              >
-                {updating ? 'Enregistrement...' : <><Save size={20} /> Enregistrer les modifications</>}
-              </button>
+          <div className="col-lg-4 col-md-6 my-sm-auto ms-sm-auto me-sm-0 mx-auto mt-3">
+            <div className="nav-wrapper position-relative end-0">
+              <ul className="nav nav-pills nav-fill p-1 bg-transparent" role="tablist">
+                <li className="nav-item">
+                  <a className="nav-link mb-0 px-0 py-1 active" data-bs-toggle="tab" href="#" role="tab" aria-selected="true">
+                    <i className="ni ni-app text-sm me-2"></i>
+                    <span className="ms-1">App</span>
+                  </a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#" role="tab" aria-selected="false">
+                    <i className="ni ni-email-83 text-sm me-2"></i>
+                    <span className="ms-1">Messages</span>
+                  </a>
+                </li>
+                <li className="nav-item">
+                  <a className="nav-link mb-0 px-0 py-1" data-bs-toggle="tab" href="#" role="tab" aria-selected="false">
+                    <i className="ni ni-settings-gear-65 text-sm me-2"></i>
+                    <span className="ms-1">Settings</span>
+                  </a>
+                </li>
+              </ul>
             </div>
-          </form>
-        </main>
+          </div>
+        </div>
+      </div>
+
+      <div className="container-fluid py-4">
+        <div className="row">
+          <div className="col-12 col-xl-4">
+            <div className="card h-100">
+              <div className="card-header pb-0 p-3">
+                <h6 className="mb-0">Platform Settings</h6>
+              </div>
+              <div className="card-body p-3">
+                <h6 className="text-uppercase text-body text-xs font-weight-bolder">Account</h6>
+                <ul className="list-group">
+                  <li className="list-group-item border-0 px-0">
+                    <div className="form-check form-switch ps-0">
+                      <input className="form-check-input ms-auto" type="checkbox" id="flexSwitchCheckDefault" defaultChecked />
+                      <label className="form-check-label text-body ms-3 text-truncate w-80 mb-0" htmlFor="flexSwitchCheckDefault">Email me when someone follows me</label>
+                    </div>
+                  </li>
+                  <li className="list-group-item border-0 px-0">
+                    <div className="form-check form-switch ps-0">
+                      <input className="form-check-input ms-auto" type="checkbox" id="flexSwitchCheckDefault1" />
+                      <label className="form-check-label text-body ms-3 text-truncate w-80 mb-0" htmlFor="flexSwitchCheckDefault1">Email me when someone answers on my post</label>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-xl-4">
+            <div className="card h-100">
+              <div className="card-header pb-0 p-3">
+                <div className="row">
+                  <div className="col-md-8 d-flex align-items-center">
+                    <h6 className="mb-0">Profile Information</h6>
+                  </div>
+                  <div className="col-md-4 text-end">
+                    <a href="#">
+                      <i className="fas fa-user-edit text-secondary text-sm" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Profile"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <div className="card-body p-3">
+                <p className="text-sm">
+                  Hi, I’m {user?.name}, Decisions: If you can’t decide, the answer is no. If two equally difficult paths, choose the one more painful in the short term.
+                </p>
+                <hr className="horizontal gray-light my-4" />
+                <ul className="list-group">
+                  <li className="list-group-item border-0 ps-0 pt-0 text-sm"><strong className="text-dark">Full Name:</strong> &nbsp; {user?.name}</li>
+                  <li className="list-group-item border-0 ps-0 text-sm"><strong className="text-dark">Mobile:</strong> &nbsp; (44) 123 1234 123</li>
+                  <li className="list-group-item border-0 ps-0 text-sm"><strong className="text-dark">Email:</strong> &nbsp; {user?.email}</li>
+                  <li className="list-group-item border-0 ps-0 text-sm"><strong className="text-dark">Location:</strong> &nbsp; USA</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 col-xl-4">
+            <div className="card h-100">
+              <div className="card-header pb-0 p-3">
+                <h6 className="mb-0">Conversations</h6>
+              </div>
+              <div className="card-body p-3">
+                <ul className="list-group">
+                  <li className="list-group-item border-0 d-flex align-items-center px-0 mb-2">
+                    <div className="avatar me-3">
+                      <img src="/assets/img/kal-visuals-square.jpg" alt="kal" className="border-radius-lg shadow" />
+                    </div>
+                    <div className="d-flex align-items-start flex-column justify-content-center">
+                      <h6 className="mb-0 text-sm">Sophie B.</h6>
+                      <p className="mb-0 text-xs">Hi! I need more information..</p>
+                    </div>
+                    <a className="btn btn-link pe-3 ps-0 mb-0 ms-auto" href="#">Reply</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="col-12 mt-4">
+            <div className="card mb-4">
+              <div className="card-header pb-0 p-3">
+                <h6 className="mb-1">Projects</h6>
+                <p className="text-sm">Architects design houses</p>
+              </div>
+              <div className="card-body p-3">
+                <div className="row">
+                  <div className="col-xl-3 col-md-6 mb-xl-0 mb-4">
+                    <div className="card card-blog card-plain">
+                      <div className="position-relative">
+                        <a className="d-block shadow-xl border-radius-xl">
+                          <img src="/assets/img/home-decor-1.jpg" alt="img-blur-shadow" className="img-fluid shadow border-radius-xl" />
+                        </a>
+                      </div>
+                      <div className="card-body px-1 pb-0">
+                        <p className="text-gradient text-dark mb-2 text-sm">Project #2</p>
+                        <a href="#">
+                          <h5>Modern</h5>
+                        </a>
+                        <p className="mb-4 text-sm">As Uber works through a huge amount of internal management turmoil.</p>
+                        <div className="d-flex align-items-center justify-content-between">
+                          <button type="button" className="btn btn-outline-primary btn-sm mb-0">View Project</button>
+                          <div className="avatar-group mt-2">
+                            <a href="#" className="avatar avatar-xs rounded-circle">
+                              <img alt="Image placeholder" src="/assets/img/team-1.jpg" />
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
