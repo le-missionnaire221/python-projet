@@ -1,5 +1,6 @@
 # Importation des éléments de base de FastAPI : routeur, injection et gestion d'exceptions
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.encoders import jsonable_encoder
 # Importation de la session pour la base de données
 from sqlalchemy.orm import Session
 # Importation pour le typage des retours de fonctions (liste d'éléments)
@@ -46,10 +47,10 @@ def create_todo(todo: TodoCreate, db: Session = Depends(get_db), current_user: U
     # Création du todo dans la base de données en l'associant à l'utilisateur connecté via son ID
     new_todo = crud_todo.create_todo(db, todo=todo, user_id=current_user.id)
     # Retourne un message de réussite accompagné du contenu du Todo fraîchement créé
-    return {
+    return jsonable_encoder({
         "message": "Tâche ajoutée avec succès",
         "todo": new_todo
-    }
+    })
 
 # Route PUT '/{id}' permettant de mettre à jour intégralement un Todo.
 @router.put("/{id}", response_model=dict)
@@ -64,10 +65,10 @@ def update_todo(id: int, todo_data: TodoCreate, db: Session = Depends(get_db), c
     # Appel CRUD pour écraser les anciennes valeurs par les nouvelles (todo_data)
     updated_todo = crud_todo.update_todo(db, db_todo=todo, todo_in=todo_data)
     # Retour de confirmation avec la version mise à jour du Todo
-    return {
+    return jsonable_encoder({
         "message": "Tâche mise à jour avec succès",
         "todo": updated_todo
-    }
+    })
 
 # Route DELETE '/{id}' pour supprimer une tâche.
 @router.delete("/{id}")
