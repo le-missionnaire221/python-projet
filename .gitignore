@@ -17,3 +17,7 @@ env/
 .vscode/
 .idea/
 *.swp
+
+# Local data
+*.db
+scratch/
