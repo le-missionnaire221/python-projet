@@ -1,0 +1,35 @@
+/* 
+  Custom Overrides for Soft UI Dashboard
+  The main styles are loaded from assets/css/soft-ui-dashboard.css
+*/
+
+:root {
+  --primary: #cb0c9f;
+}
+
+body {
+  margin: 0;
+  font-family: 'Open Sans', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Fix for main content padding with the fixed sidebar */
+@media (min-width: 1200px) {
+  .main-content {
+    margin-left: 17.125rem;
+  }
+  .sidenav.fixed-start ~ .main-content {
+    margin-left: 17.125rem;
+  }
+}
+
+.navbar-vertical.navbar-expand-xs .navbar-collapse {
+  display: block !important;
+  height: auto !important;
+}
