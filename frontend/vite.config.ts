@@ -6,15 +6,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
-      '/token': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
+      // Proxy direct vers le backend FastAPI — utilisé si BASE_URL pointe vers Vite
+      '/auth': { target: 'http://localhost:8000', changeOrigin: true },
+      '/users': { target: 'http://localhost:8000', changeOrigin: true },
+      '/todos': { target: 'http://localhost:8000', changeOrigin: true },
     },
   },
 })

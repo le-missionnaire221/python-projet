@@ -4,8 +4,9 @@ import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
 import ProfilePage from './pages/ProfilePage';
+import TasksPage from './pages/TasksPage';
+import EmployeesPage from './pages/EmployeesPage';
 import { apiService } from './services/api';
 
 interface PrivateRouteProps {
@@ -19,34 +20,49 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
 
 function App() {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
+  const isAuthPage = location.pathname === '/login';
 
   return (
     <>
       {!isAuthPage && <Sidebar />}
-      
+
       <main className={`main-content position-relative max-height-vh-100 h-100 border-radius-lg ${!isAuthPage ? 'ps-3' : ''}`}>
         {!isAuthPage && <Navbar />}
-        
+
         <Routes>
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
               <PrivateRoute>
                 <DashboardPage />
               </PrivateRoute>
-            } 
+            }
           />
-          <Route 
-            path="/profile" 
+          <Route
+            path="/tasks"
+            element={
+              <PrivateRoute>
+                <TasksPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <PrivateRoute>
+                <EmployeesPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
             element={
               <PrivateRoute>
                 <ProfilePage />
               </PrivateRoute>
-            } 
+            }
           />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

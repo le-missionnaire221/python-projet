@@ -19,13 +19,14 @@ router = APIRouter()
 
 # Définition d'une route POST pour CRÉER un utilisateur. Le retour se basera automatiquement sur le schéma UserResponse.
 @router.post("/", response_model=UserResponse)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
-    # Vérification dans la BD si cet email est déjà associé à un compte existant
+def create_user(user: UserCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    from app.models.user import RoleEnum
+    # Seul un admin peut créer un compte
+    if current_user.role != RoleEnum.ADMIN:
+        raise HTTPException(status_code=403, detail="Droits administrateur requis")
     db_user = crud_user.get_user_by_email(db, email=user.email)
-    # Si oui, lève une erreur HTTP 400 (Bad Request)
     if db_user:
         raise HTTPException(status_code=400, detail="Email déjà enregistré")
-    # Sinon, on crée cet utilisateur dans la base de données et on renvoie ses informations filtrées (sans mot de passe)
     return crud_user.create_user(db=db, user=user)
 
 # Route pour récupérer les informations de l'utilisateur ACTUELLEMENT connecté

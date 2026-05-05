@@ -78,9 +78,8 @@ const LoginPage: React.FC = () => {
                   </form>
                 </div>
                 <div className="card-footer text-center pt-0 px-lg-2 px-1">
-                  <p className="mb-4 text-sm mx-auto">
-                    Don't have an account?
-                    <Link to="/signup" className="text-info text-gradient font-weight-bold"> Sign up</Link>
+                  <p className="mb-4 text-sm mx-auto text-secondary">
+                    Contactez un administrateur pour créer un compte.
                   </p>
                 </div>
               </div>

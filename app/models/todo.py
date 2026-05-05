@@ -10,12 +10,16 @@ from app.core.database import Base
 
 # Création d'une énumération définissant les niveaux de priorité possibles
 class PriorityEnum(str, PyEnum):
-    # Priorité basse
-    LOW = "low"
-    # Priorité moyenne
-    MEDIUM = "medium"
-    # Priorité élevée
-    HIGH = "high"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
+# Énumération définissant le cycle de vie d'une tâche
+class StatusEnum(str, PyEnum):
+    EN_COURS = "en_cours"
+    A_TESTER = "a_tester"
+    APPROUVE = "approuve"
 
 
 # Définition de la classe Tache qui représente une tâche dans notre application (table 'taches')
@@ -36,12 +40,16 @@ class Tache(Base):
     # Relation SQLAlchemy pour accéder facilement à l'objet User propriétaire de cette tâche
     owner = relationship("User", back_populates="tasks")
 
-    # Colonne priority : utilise l'énumération PriorityEnum définie en haut
+    # Colonne priority : utilise l'énumération PriorityEnum définissant si low/medium/high (par défaut : medium)
     priority = Column(
-        # Indique que c'est un type Enum et lui donne le nom de type 'priority_enum' en BD
-        Enum(PriorityEnum, name="priority_enum"),
-        # Par défaut, une tâche a une priorité moyenne
+        Enum(PriorityEnum, name="priority_enum", values_callable=lambda x: [e.value for e in x]),
         default=PriorityEnum.MEDIUM,
-        # Ce champ est obligatoire
+        nullable=False
+    )
+
+    # Colonne status : cycle de vie de la tâche (par défaut : en_cours)
+    status = Column(
+        Enum(StatusEnum, name="status_enum", values_callable=lambda x: [e.value for e in x]),
+        default=StatusEnum.EN_COURS,
         nullable=False
     )

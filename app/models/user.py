@@ -9,10 +9,8 @@ from app.core.database import Base
 
 # Création d'une énumération pour les rôles des utilisateurs
 class RoleEnum(str, enum.Enum):
-    # Rôle standard d'un utilisateur
-    USER = "user"
-    # Rôle d'administrateur avec des droits étendus
-    ADMIN = "admin"
+    USER = "USER"
+    ADMIN = "ADMIN"
 
 # Définition de la classe User qui hérite de Base (représente la table 'users' en BD)
 class User(Base):
@@ -30,7 +28,7 @@ class User(Base):
     # Colonne is_active : booléen pour savoir si le compte est actif (par défaut : True)
     is_active = Column(Boolean, default=True)
     # Colonne rôle : utilise l'énumération RoleEnum définissant si user/admin (par défaut : user)
-    role = Column(SqlEnum(RoleEnum), default=RoleEnum.USER, nullable=False)
+    role = Column(SqlEnum(RoleEnum, name="roleenum", values_callable=lambda x: [e.value for e in x]), default=RoleEnum.USER, nullable=False)
     
     # Relation avec la table des tâches (Tache). Un utilisateur peut avoir plusieurs tâches.
     # 'back_populates' lie cette relation à la propriété 'owner' dans le modèle Tache.
