@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { User as UserIcon, Mail, Shield, Activity, LogOut, Save, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 import { apiService } from '../services/api';
 import type { User } from '../types/index';
 
 const ProfilePage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
-  const navigate = useNavigate();
+
+  // Formulaire de modification
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [updateError, setUpdateError] = useState('');
+  const [updateSuccess, setUpdateSuccess] = useState('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -19,255 +23,256 @@ const ProfilePage: React.FC = () => {
 
   const loadProfile = async () => {
     setLoading(true);
+    setError('');
     try {
       const data = await apiService.getProfile();
       setUser(data);
-      setFormData({ name: data.name, email: data.email, password: '' });
-    } catch (err) {
-      setError('Impossible de charger le profil.');
-      console.error(err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erreur lors du chargement du profil.';
+      if (msg === 'Non authentifié') { window.location.href = '/login'; return; }
+      setError(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdate = async (e: React.FormEvent) => {
+  const handleOpenEdit = () => {
+    if (!user) return;
+    setName(user.name);
+    setEmail(user.email);
+    setNameError('');
+    setEmailError('');
+    setUpdateError('');
+    setUpdateSuccess('');
+    setEditing(true);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setUpdating(true);
-    setError('');
-    setSuccess('');
+    setNameError('');
+    setEmailError('');
+    setUpdateError('');
+    setUpdateSuccess('');
+
+    let valid = true;
+    if (!name.trim()) { setNameError('Le nom est obligatoire.'); valid = false; }
+    if (!email.trim()) { setEmailError("L'email est obligatoire."); valid = false; }
+    if (!valid) return;
+
+    setSaving(true);
     try {
-      const updateData: any = { name: formData.name, email: formData.email };
-      if (formData.password) updateData.password = formData.password;
-      
-      const updatedUser = await apiService.updateProfile(updateData);
-      setUser(updatedUser);
-      setSuccess('Profil mis à jour avec succès !');
-      setFormData(prev => ({ ...prev, password: '' }));
-    } catch (err) {
-      setError('Erreur lors de la mise à jour du profil.');
+      const updated = await apiService.updateProfile({ name: name.trim(), email: email.trim() });
+      setUser(updated);
+      setUpdateSuccess('Profil mis à jour avec succès.');
+      setEditing(false);
+    } catch (err: unknown) {
+      setUpdateError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour.');
     } finally {
-      setUpdating(false);
+      setSaving(false);
     }
   };
 
-  const handleLogout = () => {
-    apiService.logout();
-    window.location.href = '/login';
+  const priorityBadge = (priority: string) => {
+    const map: Record<string, string> = {
+      HIGH: 'badge bg-gradient-danger',
+      MEDIUM: 'badge bg-gradient-warning',
+      LOW: 'badge bg-gradient-success',
+    };
+    const labels: Record<string, string> = { HIGH: 'Haute', MEDIUM: 'Moyenne', LOW: 'Basse' };
+    return <span className={map[priority] ?? 'badge bg-gradient-secondary'}>{labels[priority] ?? priority}</span>;
   };
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh' }}>
-        <div style={{ fontSize: '1.2rem', color: 'var(--text-muted)' }} className="animate-pulse">Chargement de votre profil...</div>
+      <div className="container-fluid py-4 text-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container-fluid py-4">
+        <p className="text-danger text-sm">{error}</p>
       </div>
     );
   }
 
   return (
-    <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto', paddingBottom: '4rem' }}>
-      <button 
-        onClick={() => navigate('/')}
-        style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          background: 'none', 
-          border: 'none', 
-          color: 'var(--text-muted)', 
-          cursor: 'pointer',
-          marginBottom: '2rem',
-          fontSize: '0.9rem'
-        }}
-      >
-        <ArrowLeft size={18} />
-        Retour au tableau de bord
-      </button>
+    <div className="container-fluid py-4">
 
-      <header style={{ marginBottom: '3rem' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>Mon Profil</h1>
-        <p style={{ color: 'var(--text-muted)' }}>Gérez vos informations personnelles et votre compte</p>
-      </header>
+      {/* En-tête profil */}
+      <div className="page-header min-height-200 border-radius-xl mt-2" style={{ backgroundImage: "url('/assets/img/curved-images/curved0.jpg')", backgroundPositionY: '50%' }}>
+        <span className="mask bg-gradient-primary opacity-6"></span>
+      </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
-        {/* Colonne de gauche : Résumé */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="glass card" style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--primary), var(--secondary))', 
-              margin: '0 auto 1rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white'
-            }}>
-              <UserIcon size={40} />
-            </div>
-            <h2 style={{ fontSize: '1.25rem', marginBottom: '0.2rem' }}>{user?.name}</h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.5rem' }}>{user?.email}</p>
-            
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.4rem 0.8rem', 
-              background: 'rgba(255,255,255,0.05)', 
-              borderRadius: '20px',
-              fontSize: '0.8rem',
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em'
-            }}>
-              <Shield size={14} style={{ color: user?.role === 'admin' ? 'var(--accent)' : 'var(--secondary)' }} />
-              {user?.role}
-            </div>
-          </div>
-
-          <div className="glass card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Activity size={18} />
-              Statistiques
-            </h3>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '0.8rem', borderBottom: '1px solid var(--border-glass)' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Tâches totales</span>
-              <span style={{ fontWeight: 700 }}>{user?.tasks?.length || 0}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '0.8rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Statut compte</span>
-              <span style={{ color: user?.is_active ? 'var(--secondary)' : 'var(--accent)', fontWeight: 600 }}>
-                {user?.is_active ? 'Actif' : 'Inactif'}
+      <div className="card card-body blur shadow-blur mx-4 mt-n6 overflow-hidden mb-4">
+        <div className="row gx-4 align-items-center">
+          <div className="col-auto">
+            <div className="avatar avatar-xl bg-gradient-primary border-radius-md d-flex align-items-center justify-content-center shadow">
+              <span className="text-white font-weight-bold" style={{ fontSize: '2rem' }}>
+                {user?.name.charAt(0).toUpperCase()}
               </span>
             </div>
           </div>
-
-          <button 
-            onClick={handleLogout}
-            style={{ 
-              width: '100%', 
-              padding: '1rem', 
-              borderRadius: '12px', 
-              border: '1px solid rgba(244, 63, 94, 0.2)', 
-              background: 'rgba(244, 63, 94, 0.05)', 
-              color: 'var(--accent)', 
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.5rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.background = 'rgba(244, 63, 94, 0.1)'}
-            onMouseOut={(e) => e.currentTarget.style.background = 'rgba(244, 63, 94, 0.05)'}
-          >
-            <LogOut size={18} />
-            Se déconnecter
-          </button>
-        </aside>
-
-        {/* Colonne de droite : Formulaire */}
-        <main>
-          <form onSubmit={handleUpdate} className="glass card" style={{ padding: '2rem' }}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Modifier mes informations</h3>
-
-            {error && (
-              <div style={{ 
-                background: 'rgba(244, 63, 94, 0.1)', 
-                color: 'var(--accent)', 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.7rem'
-              }}>
-                <AlertCircle size={20} />
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div style={{ 
-                background: 'rgba(6, 182, 212, 0.1)', 
-                color: 'var(--secondary)', 
-                padding: '1rem', 
-                borderRadius: '8px', 
-                marginBottom: '1.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.7rem'
-              }}>
-                <CheckCircle2 size={20} />
-                {success}
-              </div>
-            )}
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nom complet</label>
-                <div style={{ position: 'relative' }}>
-                  <UserIcon size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="text" 
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder={user?.name}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Adresse Email</label>
-                <div style={{ position: 'relative' }}>
-                  <Mail size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="email" 
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder={user?.email}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <label style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Nouveau mot de passe (optionnel)</label>
-                <div style={{ position: 'relative' }}>
-                  <Shield size={18} style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                  <input 
-                    type="password" 
-                    value={formData.password}
-                    onChange={e => setFormData({ ...formData, password: e.target.value })}
-                    style={{ paddingLeft: '3rem', width: '100%' }}
-                    placeholder="Laisser vide pour ne pas changer"
-                  />
-                </div>
-              </div>
-
-              <button 
-                type="submit" 
-                className="btn-primary" 
-                disabled={updating}
-                style={{ 
-                  marginTop: '1rem', 
-                  height: '52px', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  gap: '0.8rem' 
-                }}
+          <div className="col-auto my-auto">
+            <h5 className="mb-1">{user?.name}</h5>
+            <p className="mb-0 font-weight-bold text-sm text-secondary">
+              {user?.role === 'ADMIN' ? 'Administrateur' : 'Utilisateur'} · {user?.email}
+            </p>
+          </div>
+          <div className="col-auto ms-auto">
+            {!editing && (
+              <button
+                className="btn bg-gradient-primary btn-sm mb-0"
+                onClick={handleOpenEdit}
               >
-                {updating ? 'Enregistrement...' : <><Save size={20} /> Enregistrer les modifications</>}
+                <i className="ni ni-settings-gear-65 me-1"></i>
+                Modifier le profil
               </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {updateSuccess && (
+        <div className="alert alert-success text-sm mx-4 mb-3" role="alert">
+          {updateSuccess}
+        </div>
+      )}
+
+      <div className="row mx-0">
+
+        {/* Informations + formulaire */}
+        <div className="col-12 col-xl-4 mb-4">
+          <div className="card h-100">
+            <div className="card-header pb-0 p-3">
+              <h6 className="mb-0">Informations du profil</h6>
             </div>
-          </form>
-        </main>
+            <div className="card-body p-3">
+              {!editing ? (
+                <ul className="list-group list-group-flush">
+                  <li className="list-group-item border-0 ps-0 pt-0 text-sm">
+                    <strong className="text-dark">Nom :</strong> {user?.name}
+                  </li>
+                  <li className="list-group-item border-0 ps-0 text-sm">
+                    <strong className="text-dark">Email :</strong> {user?.email}
+                  </li>
+                  <li className="list-group-item border-0 ps-0 text-sm">
+                    <strong className="text-dark">Rôle :</strong>{' '}
+                    <span className={`badge ${user?.role === 'ADMIN' ? 'bg-gradient-primary' : 'bg-gradient-secondary'}`}>
+                      {user?.role === 'ADMIN' ? 'Admin' : 'Utilisateur'}
+                    </span>
+                  </li>
+                  <li className="list-group-item border-0 ps-0 text-sm">
+                    <strong className="text-dark">Statut :</strong>{' '}
+                    <span className={`badge ${user?.is_active ? 'bg-gradient-success' : 'bg-gradient-danger'}`}>
+                      {user?.is_active ? 'Actif' : 'Inactif'}
+                    </span>
+                  </li>
+                  <li className="list-group-item border-0 ps-0 text-sm">
+                    <strong className="text-dark">Tâches :</strong> {user?.tasks?.length ?? 0}
+                  </li>
+                </ul>
+              ) : (
+                <form onSubmit={handleSave}>
+                  <div className="mb-3">
+                    <label className="form-label text-sm font-weight-bold" htmlFor="profile-name">
+                      Nom <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="profile-name"
+                      type="text"
+                      className={`form-control ${nameError ? 'is-invalid' : ''}`}
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                      aria-label="Nom"
+                    />
+                    {nameError && <p className="text-danger text-xs mt-1">{nameError}</p>}
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label text-sm font-weight-bold" htmlFor="profile-email">
+                      Email <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      id="profile-email"
+                      type="email"
+                      className={`form-control ${emailError ? 'is-invalid' : ''}`}
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      aria-label="Email"
+                    />
+                    {emailError && <p className="text-danger text-xs mt-1">{emailError}</p>}
+                  </div>
+                  {updateError && <p className="text-danger text-xs mb-2">{updateError}</p>}
+                  <div className="d-flex gap-2">
+                    <button
+                      type="submit"
+                      className="btn bg-gradient-primary btn-sm mb-0"
+                      disabled={saving}
+                    >
+                      {saving ? 'Enregistrement...' : 'Enregistrer'}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm mb-0"
+                      onClick={() => setEditing(false)}
+                      disabled={saving}
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Liste des tâches */}
+        <div className="col-12 col-xl-8 mb-4">
+          <div className="card h-100">
+            <div className="card-header pb-0 p-3">
+              <h6 className="mb-0">Mes tâches ({user?.tasks?.length ?? 0})</h6>
+            </div>
+            <div className="card-body p-3">
+              {!user?.tasks || user.tasks.length === 0 ? (
+                <p className="text-secondary text-sm">Aucune tâche assignée.</p>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table align-items-center mb-0">
+                    <thead>
+                      <tr>
+                        <th className="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Titre</th>
+                        <th className="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Description</th>
+                        <th className="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Priorité</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {user.tasks.map(task => (
+                        <tr key={task.id}>
+                          <td>
+                            <p className="text-sm font-weight-bold mb-0 px-2">{task.titre}</p>
+                          </td>
+                          <td>
+                            <p className="text-xs text-secondary mb-0 px-2">
+                              {task.description || <em className="opacity-5">—</em>}
+                            </p>
+                          </td>
+                          <td className="align-middle text-center">
+                            {priorityBadge(task.priority)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );

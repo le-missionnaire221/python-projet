@@ -22,10 +22,11 @@ router = APIRouter()
 
 # Route GET '/' pour lire plusieurs tâches. Renvoie une liste d'objets au format 'TodoResponse'
 @router.get("/", response_model=List[TodoResponse])
-# Injection de la base de données ET vérification que l'utilisateur est authentifié (`current_user`)
 def read_todos(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """GET tous les todos de l'utilisateur connecté"""
-    # Appel de la fonction CRUD pour ne récupérer que les tâches appartenant à 'current_user' (l'utilisateur connecté)
+    """GET todos — admin voit toutes les tâches, user voit seulement les siennes"""
+    from app.models.user import RoleEnum
+    if current_user.role == RoleEnum.ADMIN:
+        return crud_todo.get_all_todos(db)
     return crud_todo.get_todos(db, user_id=current_user.id)
 
 # Route GET '/{id}' pour lire un Todo spécifique selon son ID
@@ -43,10 +44,20 @@ def read_todo(id: int, db: Session = Depends(get_db), current_user: User = Depen
 # Route POST '/' pour créer un Todo. Retourne un dictionnaire standard.
 @router.post("/", response_model=dict)
 def create_todo(todo: TodoCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """POST créer un todo pour l'utilisateur connecté"""
-    # Création du todo dans la base de données en l'associant à l'utilisateur connecté via son ID
+    """POST créer un todo — admin peut assigner à un autre utilisateur via owner_id"""
+    from app.models.user import RoleEnum
+
+    # Si owner_id fourni, vérifier les droits admin
+    if todo.owner_id is not None and todo.owner_id != current_user.id:
+        if current_user.role != RoleEnum.ADMIN:
+            raise HTTPException(status_code=403, detail="Droits administrateur requis pour assigner une tâche")
+        # Vérifier que l'utilisateur cible existe
+        from app.crud import crud_user
+        target_user = crud_user.get_user(db, user_id=todo.owner_id)
+        if not target_user:
+            raise HTTPException(status_code=404, detail="Utilisateur cible non trouvé")
+
     new_todo = crud_todo.create_todo(db, todo=todo, user_id=current_user.id)
-    # Retourne un message de réussite accompagné du contenu du Todo fraîchement créé
     return jsonable_encoder({
         "message": "Tâche ajoutée avec succès",
         "todo": new_todo
@@ -55,30 +66,27 @@ def create_todo(todo: TodoCreate, db: Session = Depends(get_db), current_user: U
 # Route PUT '/{id}' permettant de mettre à jour intégralement un Todo.
 @router.put("/{id}", response_model=dict)
 def update_todo(id: int, todo_data: TodoCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """PUT modifier un todo de l'utilisateur connecté"""
-    # On commence d'abord par vérifier que le todo existe bien et appartient au current_user
-    todo = crud_todo.get_todo(db, tache_id=id, user_id=current_user.id)
+    """PUT modifier un todo — admin peut modifier n'importe quelle tâche"""
+    from app.models.user import RoleEnum
+    if current_user.role == RoleEnum.ADMIN:
+        todo = crud_todo.get_todo_by_id(db, tache_id=id)
+    else:
+        todo = crud_todo.get_todo(db, tache_id=id, user_id=current_user.id)
     if not todo:
-        # Erreur si inexistant / non autorisé
         raise HTTPException(status_code=404, detail="Tâche non trouvée ou non autorisée")
-    
-    # Appel CRUD pour écraser les anciennes valeurs par les nouvelles (todo_data)
     updated_todo = crud_todo.update_todo(db, db_todo=todo, todo_in=todo_data)
-    # Retour de confirmation avec la version mise à jour du Todo
-    return jsonable_encoder({
-        "message": "Tâche mise à jour avec succès",
-        "todo": updated_todo
-    })
+    return jsonable_encoder({"message": "Tâche mise à jour avec succès", "todo": updated_todo})
 
-# Route DELETE '/{id}' pour supprimer une tâche.
+
 @router.delete("/{id}")
 def delete_todo(id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """DELETE un todo de l'utilisateur connecté"""
-    # Vérification habituelle de l'existence et la propriété de la tâche
-    todo = crud_todo.get_todo(db, tache_id=id, user_id=current_user.id)
+    """DELETE un todo — admin peut supprimer n'importe quelle tâche"""
+    from app.models.user import RoleEnum
+    if current_user.role == RoleEnum.ADMIN:
+        todo = crud_todo.get_todo_by_id(db, tache_id=id)
+    else:
+        todo = crud_todo.get_todo(db, tache_id=id, user_id=current_user.id)
     if not todo:
         raise HTTPException(status_code=404, detail="Tâche non trouvée ou non autorisée")
-    # Si ok, exécute la suppression en BD
     crud_todo.delete_todo(db, db_todo=todo)
-    # Retour d'un message prouvant à l'utilisateur que l'action a réussi
     return {"message": f"Tâche {id} supprimée avec succès"}

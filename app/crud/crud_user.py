@@ -24,19 +24,15 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 # Fonction permettant de créer un nouvel utilisateur dans le système
 def create_user(db: Session, user: UserCreate): 
-    # Action primordiale : Hachage du mot de passe fourni en clair !
     hashed_pwd = get_password_hash(user.password) 
-    # Création de l'instance d'utilisateur avec le mot de passe masqué (et non le normal !)
     db_user = User( 
         name=user.name, 
         email=user.email, 
-        hashed_password=hashed_pwd 
+        hashed_password=hashed_pwd,
+        role=user.role if user.role is not None else "user"
     ) 
-    # Ajoute à la transaction de base de données courante
     db.add(db_user) 
-    # Confirme les changements physiquement dans la base
     db.commit() 
-    # Recharge les données à partir de la BDD (ex: pour obtenir l'ID autogénéré par SQL)
     db.refresh(db_user) 
     return db_user 
 

@@ -3,21 +3,17 @@ from pydantic import BaseModel
 # Importation de Optional pour typer un champ qui peut être absent/nul
 from typing import Optional
 # Importation de notre Enum PriorityEnum utilisé par notre modèle de base de données
-from app.models.todo import PriorityEnum
+from app.models.todo import PriorityEnum, StatusEnum
 
 # Création du schéma de base partageant des attributs communs à toutes les autres requêtes Todo
 class TodoBase(BaseModel):
-    # Le titre de la tâche, chaîne obligatoire
     titre: str
-    # La description, qui peut être du texte ou vide (Optionnel, par défaut None)
     description: Optional[str] = None
-    # La priorité, qui doit être l'un des choix de `PriorityEnum`. Par défaut MEDIUM
     priority: PriorityEnum = PriorityEnum.MEDIUM
+    status: StatusEnum = StatusEnum.EN_COURS
 
-# Schéma utilisé spécifiquement lors de la CRÉATION d'une tâche. On hérite juste des bases.
 class TodoCreate(TodoBase):
-    # Rien à ajouter, TodoBase contient déjà tout ce qu'il faut pour créer la tâche
-    pass 
+    owner_id: Optional[int] = None 
 
 # Schéma utilisé pour RENVOYER la tâche créée (réponse API)
 class TodoResponse(TodoBase):
